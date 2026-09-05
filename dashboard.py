@@ -41,10 +41,6 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-# ---------------------------------------------------------------------------
-# Make `src` importable when this file is run via `streamlit run dashboard.py`
-# from the project root (mirrors the same trick used in run_pipeline.py).
-# ---------------------------------------------------------------------------
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 BACKEND_AVAILABLE = True
@@ -63,10 +59,7 @@ try:
 except ImportError:  # pragma: no cover
     PLOTLY_AVAILABLE = False
 
-
-# ---------------------------------------------------------------------------
 # Constants — mirror run_pipeline.py exactly so features/predictions line up
-# ---------------------------------------------------------------------------
 BUFFER_SIZE = 20
 FEATURE_ORDER = ["rolling_mean_5", "rolling_mean_20", "momentum_5", "rolling_vol_10"]
 MODEL_NAMES = ["logreg", "random_forest"]
@@ -81,9 +74,7 @@ MODELS_DIR = "models"
 POLL_SECONDS_DEFAULT = 15  # matches scraper.py / run_pipeline.py cadence
 
 
-# ---------------------------------------------------------------------------
 # Data loading helpers — all defensive, none of them raise into the UI
-# ---------------------------------------------------------------------------
 @st.cache_data(ttl=10)
 def load_live_data() -> pd.DataFrame:
     """Load data/live_ticks.csv, bitcoin rows only, safely."""
@@ -267,9 +258,8 @@ def compute_current_prediction(live_df: pd.DataFrame, models: dict):
     }
 
 
-# ---------------------------------------------------------------------------
 # Small formatting / display helpers
-# ---------------------------------------------------------------------------
+
 def _direction_label(v) -> str:
     if v is None:
         return "—"
@@ -308,9 +298,7 @@ def _line_chart(df: pd.DataFrame, x: str, y: str, title: str, y_label: str):
         st.line_chart(plot_df.set_index(x)[y], height=280)
 
 
-# ---------------------------------------------------------------------------
 # Page setup / styling
-# ---------------------------------------------------------------------------
 st.set_page_config(
     page_title="TENSOR TITANS — BTC Prediction & MLOps",
     page_icon="📈",
@@ -345,9 +333,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# ---------------------------------------------------------------------------
 # Sidebar
-# ---------------------------------------------------------------------------
 with st.sidebar:
     st.markdown("### TENSOR TITANS")
     st.caption("BTC tick prediction & MLOps monitor")
@@ -374,10 +360,7 @@ with st.sidebar:
     if not BACKEND_AVAILABLE:
         st.error(f"Backend import failed: {BACKEND_IMPORT_ERROR}")
 
-
-# ---------------------------------------------------------------------------
 # Load everything up front
-# ---------------------------------------------------------------------------
 live_df = load_live_data()
 log_df = load_prediction_log()
 run_log = load_run_log()
@@ -386,9 +369,7 @@ current = compute_current_prediction(live_df, models)
 training_volatility = compute_training_volatility()
 
 
-# ---------------------------------------------------------------------------
 # 1. Header
-# ---------------------------------------------------------------------------
 def render_header():
     latest = get_latest_btc_data(live_df)
     if latest is None:
@@ -413,10 +394,7 @@ def render_header():
         st.caption(f"Last update: {last_update_str}")
     st.divider()
 
-
-# ---------------------------------------------------------------------------
 # 2. KPI cards
-# ---------------------------------------------------------------------------
 def render_kpis():
     latest = get_latest_btc_data(live_df)
     change = calculate_price_change(live_df, periods=min(20, max(1, len(live_df) - 1)))
@@ -440,9 +418,7 @@ def render_kpis():
     st.divider()
 
 
-# ---------------------------------------------------------------------------
 # 3. Main price chart
-# ---------------------------------------------------------------------------
 def render_price_chart():
     st.subheader("Bitcoin Price")
     if live_df.empty:
@@ -642,10 +618,7 @@ def render_recent_predictions():
     )
     st.divider()
 
-
-# ---------------------------------------------------------------------------
 # 8. Volatility / accuracy / latency history charts
-# ---------------------------------------------------------------------------
 def render_history_charts():
     st.subheader("Monitoring History")
     if log_df.empty:
@@ -686,9 +659,9 @@ def render_history_charts():
     st.divider()
 
 
-# ---------------------------------------------------------------------------
+
 # 9. Data quality / system info
-# ---------------------------------------------------------------------------
+
 def render_system_info():
     st.subheader("System Information")
     latest = get_latest_btc_data(live_df)
@@ -725,9 +698,8 @@ def render_system_info():
         st.caption("No `run_log.json` found yet — run `python src/run_pipeline.py`.")
 
 
-# ---------------------------------------------------------------------------
 # Render — each section isolated so one failure doesn't take down the page
-# ---------------------------------------------------------------------------
+
 sections = [
     render_header, render_kpis, render_price_chart, render_prediction_panel,
     render_model_performance, render_monitoring, render_recent_predictions,
@@ -743,9 +715,7 @@ if not PLOTLY_AVAILABLE:
     st.caption("Tip: `pip install plotly` and add `plotly>=5.20.0` to requirements.txt "
                "for interactive charts with zoom/hover — native charts are used as a fallback.")
 
-# ---------------------------------------------------------------------------
 # Auto-refresh — plain-Streamlit polling, no extra dependency required
-# ---------------------------------------------------------------------------
 if auto_refresh:
     time.sleep(refresh_interval)
     st.rerun()
