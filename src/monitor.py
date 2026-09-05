@@ -1,14 +1,13 @@
 """
 monitor.py
-YOUR JOB:
+
 Logging and live-monitoring helpers: per-tick prediction logging, rolling
-accuracy, latency tracking, and a simple drift flag.
+accuracy, latency tracking, and a simple volatility-drift flag.
 """
 
 from typing import Dict, List, Optional
 import json
 import os
-import time
 
 LOG_PATH = os.path.join("logs", "predictions.jsonl")
 RUN_LOG_PATH = "run_log.json"
@@ -26,9 +25,41 @@ def log_prediction(
         timestamp, features, predictions (per model), actual (may be None
         until the next tick arrives), latency_ms.
 
-    Create the logs/ directory if it doesn't exist.
+    Creates the logs/ directory if it doesn't exist.
     """
-    return
+    log_dir = os.path.dirname(LOG_PATH)
+    if log_dir:
+        os.makedirs(log_dir, exist_ok=True)
+
+    record = {
+        "timestamp": timestamp,
+        "features": features,
+        "predictions": predictions,
+        "actual": actual,
+        "latency_ms": latency_ms,
+    }
+
+    with open(LOG_PATH, "a") as f:
+        f.write(json.dumps(record) + "\n")
+
+
+def _read_log_records() -> List[Dict]:
+    """Reads predictions.jsonl into a list of dicts, skipping any corrupted
+    line (e.g. from a crash mid-write) instead of failing the whole read."""
+    if not os.path.exists(LOG_PATH):
+        return []
+
+    records = []
+    with open(LOG_PATH) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                records.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+    return records
 
 
 def compute_rolling_accuracy(model_name: str, window: int = 50) -> float:
@@ -37,9 +68,20 @@ def compute_rolling_accuracy(model_name: str, window: int = 50) -> float:
     the last `window` ticks that have a non-null `actual` value.
 
     Returns:
-        accuracy as a float in [0, 1]. Return 0.0 if there's no data yet.
+        accuracy as a float in [0, 1]. Returns 0.0 if there's no data yet.
     """
-    return 0.0
+    records = _read_log_records()
+
+    resolved = [
+        r for r in records
+        if r.get("actual") is not None and model_name in r.get("predictions", {})
+    ]
+    if not resolved:
+        return 0.0
+
+    recent = resolved[-window:]
+    correct = sum(1 for r in recent if r["predictions"][model_name] == r["actual"])
+    return correct / len(recent)
 
 
 def compute_drift_flag(
@@ -49,7 +91,10 @@ def compute_drift_flag(
     Return True if current_volatility is more than `threshold`x the
     volatility seen during training (a simple, cheap drift signal).
     """
-    return True
+    if training_volatility <= 0:
+        # No meaningful baseline to compare against yet — don't false-flag.
+        return False
+    return current_volatility > threshold * training_volatility
 
 
 def write_run_log(metadata: Dict) -> None:
@@ -62,4 +107,5 @@ def write_run_log(metadata: Dict) -> None:
           "final_accuracy": {"logreg": 0.55, "random_forest": 0.58}
         }
     """
-    return
+    with open(RUN_LOG_PATH, "w") as f:
+        json.dump(metadata, f, indent=2, default=str)
