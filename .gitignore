@@ -6,3 +6,10 @@ run_log.json
 logs/
 data/live_ticks.csv
 .DS_Store
+
+.venv/
+models/
+logs/
+data/live_ticks.csv
+__pycache__/
+*.pkl
