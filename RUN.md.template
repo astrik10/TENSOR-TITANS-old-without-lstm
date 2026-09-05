@@ -1,0 +1,33 @@
+# RUN.md
+
+> Fill this in and rename it to `RUN.md` before you submit.
+
+## Setup
+
+```bash
+# e.g. python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+```
+
+## How to run
+
+```bash
+# exact commands, in order, to run your pipeline end-to-end
+```
+
+## Where to find the results
+
+- Run log: `run_log.json`
+- Prediction log: `logs/predictions.jsonl`
+- Saved models: `models/`
+
+## Final accuracy (fill in after your run)
+
+| Model | Accuracy | Ticks evaluated |
+|---|---|---|
+| Logistic Regression | | |
+| Random Forest | | |
+
+## Known issues / things you'd do with more time
+
+-

@@ -1,0 +1,8 @@
+venv/
+__pycache__/
+*.pyc
+*.pkl
+run_log.json
+logs/
+data/live_ticks.csv
+.DS_Store
